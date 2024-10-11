@@ -1,0 +1,15 @@
+[remap]
+
+importer="godot_urdf"
+type="PackedScene"
+uid="uid://cgyrdw7dr54ya"
+path="res://.godot/imported/r2d2.urdf-14ba43751204ad2107a766de7f6a8ec9.tscn"
+
+[deps]
+
+source_file="res://addons/godot_urdf/demo_urdf/r2d2.urdf"
+dest_files=["res://.godot/imported/r2d2.urdf-14ba43751204ad2107a766de7f6a8ec9.tscn"]
+
+[params]
+
+save_path="aaa.tscn"

@@ -37,10 +37,13 @@ func as_node3d(source_path:String) -> Node3D:
 					cylinder_mesh.height = abs(visual.length)
 					cylinder_mesh.bottom_radius = abs(visual.radius)
 					cylinder_mesh.top_radius = abs(visual.radius)
-					
 					cylinder_mesh.material = material
-					
 					visual_instance.mesh = cylinder_mesh
+				URDFVisual.Type.SPHERE:
+					var sphere_mesh = SphereMesh.new()
+					sphere_mesh.radius = abs(visual.radius)
+					sphere_mesh.height = abs(visual.radius * 2)
+					visual_instance.mesh = sphere_mesh
 			visual_instance.position = visual.origin_xyz
 			visual_instance.rotation = visual.origin_rpy
 		
@@ -104,12 +107,13 @@ func get_urdf_joint(xml_node: XMLNode) -> URDFJoint :
 						float(xyz_split[2]),
 						-float(xyz_split[1])
 				)
-				var rpy_split = i.attributes["rpy"].split(" ")
-				joint.origin_rpy = Vector3(
-						float(rpy_split[0]),
-						float(rpy_split[2]),
-						-float(rpy_split[1])
-				)
+				if "rpy" in i.attributes:
+					var rpy_split = i.attributes["rpy"].split(" ")
+					joint.origin_rpy = Vector3(
+							float(rpy_split[0]),
+							float(rpy_split[2]),
+							-float(rpy_split[1])
+					)
 	return joint
 
 
@@ -154,21 +158,25 @@ func get_link_visual(xml_node: XMLNode) -> URDFVisual:
 						visual.type = URDFVisual.Type.CYLINDER
 						visual.length = float(i.children[0].attributes["length"])
 						visual.radius = float(i.children[0].attributes["radius"])
+					"sphere":
+						visual.type = URDFVisual.Type.SPHERE
+						visual.radius = float(i.children[0].attributes["radius"])
 					_:
 						printerr("Unsupported geometry for visual in link properties: ", i.children[0].name)
 			"material":
 				visual.material_name = i.attributes["name"]
-				match i.children[0].name:
-					"color":
-						var color_split = i.children[0].attributes["rgba"].split(" ")
-						visual.material_color = Vector4(
-								float(color_split[0]),
-								float(color_split[1]),
-								float(color_split[2]),
-								float(color_split[3])
-						)
-					_:
-						printerr("Unsupported material tag: ", i.children[0].name)
+				if len(i.children):
+					match i.children[0].name:
+						"color":
+							var color_split = i.children[0].attributes["rgba"].split(" ")
+							visual.material_color = Vector4(
+									float(color_split[0]),
+									float(color_split[1]),
+									float(color_split[2]),
+									float(color_split[3])
+							)
+						_:
+							printerr("Unsupported material tag: ", i.children[0].name)
 			_:
 				printerr("Unsupported node for Visual link: ", i.name)
 	return visual
