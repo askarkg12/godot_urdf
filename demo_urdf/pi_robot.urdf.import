@@ -1,0 +1,15 @@
+[remap]
+
+importer="godot_urdf"
+type="PackedScene"
+uid="uid://bqvn73pdg4bgd"
+path="res://.godot/imported/pi_robot.urdf-80337f8a97b0507e049397f215be4168.tscn"
+
+[deps]
+
+source_file="res://addons/godot_urdf/demo_urdf/pi_robot.urdf"
+dest_files=["res://.godot/imported/pi_robot.urdf-80337f8a97b0507e049397f215be4168.tscn"]
+
+[params]
+
+save_path="aaa.tscn"

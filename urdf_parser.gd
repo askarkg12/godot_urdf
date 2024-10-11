@@ -16,16 +16,30 @@ func as_node3d(source_path:String) -> Node3D:
 			link_node3d.add_child(visual_instance)
 			visual_instance.owner = root_node
 			
+			var material = StandardMaterial3D.new()
+			
+			material.albedo_color = Color(
+					visual.material_color.x,
+					visual.material_color.y,
+					visual.material_color.z,
+					visual.material_color.w
+			)
+			
 			match visual.type:
 				URDFVisual.Type.BOX:
 					var box_mesh = BoxMesh.new()
 					box_mesh.size = abs(visual.size)
+					box_mesh.material = material
+					
 					visual_instance.mesh = box_mesh
 				URDFVisual.Type.CYLINDER:
 					var cylinder_mesh = CylinderMesh.new()
 					cylinder_mesh.height = abs(visual.length)
 					cylinder_mesh.bottom_radius = abs(visual.radius)
 					cylinder_mesh.top_radius = abs(visual.radius)
+					
+					cylinder_mesh.material = material
+					
 					visual_instance.mesh = cylinder_mesh
 			visual_instance.position = visual.origin_xyz
 			visual_instance.rotation = visual.origin_rpy
@@ -142,4 +156,19 @@ func get_link_visual(xml_node: XMLNode) -> URDFVisual:
 						visual.radius = float(i.children[0].attributes["radius"])
 					_:
 						printerr("Unsupported geometry for visual in link properties: ", i.children[0].name)
+			"material":
+				visual.material_name = i.attributes["name"]
+				match i.children[0].name:
+					"color":
+						var color_split = i.children[0].attributes["rgba"].split(" ")
+						visual.material_color = Vector4(
+								float(color_split[0]),
+								float(color_split[1]),
+								float(color_split[2]),
+								float(color_split[3])
+						)
+					_:
+						printerr("Unsupported material tag: ", i.children[0].name)
+			_:
+				printerr("Unsupported node for Visual link: ", i.name)
 	return visual
