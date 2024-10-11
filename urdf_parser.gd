@@ -18,8 +18,15 @@ func as_node3d(source_path:String) -> Node3D:
 			
 			match visual.type:
 				URDFVisual.Type.BOX:
-					visual_instance.mesh = BoxMesh.new()
-					visual_instance.mesh .size = abs(visual.size)
+					var box_mesh = BoxMesh.new()
+					box_mesh.size = abs(visual.size)
+					visual_instance.mesh = box_mesh
+				URDFVisual.Type.CYLINDER:
+					var cylinder_mesh = CylinderMesh.new()
+					cylinder_mesh.height = abs(visual.length)
+					cylinder_mesh.bottom_radius = abs(visual.radius)
+					cylinder_mesh.top_radius = abs(visual.radius)
+					visual_instance.mesh = cylinder_mesh
 			visual_instance.position = visual.origin_xyz
 			visual_instance.rotation = visual.origin_rpy
 		
@@ -34,7 +41,12 @@ func as_node3d(source_path:String) -> Node3D:
 		child_node3d.rotation = joint.origin_rpy
 		match joint.type:
 			"revolute":
+				child_node3d.joint_type = child_node3d.JointType.REVOLUTE
 				child_node3d.axis = joint.axis_xyz.normalized()
+			"fixed":
+				child_node3d.joint_type = child_node3d.JointType.FIXED
+			_:
+				printerr("Unimplemented joint type for node generation: ", joint.type)
 	return root_node
 
 
@@ -57,6 +69,7 @@ func parse(source_path: String) -> URDFRobot:
 func get_urdf_joint(xml_node: XMLNode) -> URDFJoint :
 	var joint = URDFJoint.new()
 	joint.name = xml_node.attributes["name"]
+	joint.type = xml_node.attributes["type"]
 	for i in xml_node.children:
 		match i.name:
 			"parent":
@@ -123,6 +136,10 @@ func get_link_visual(xml_node: XMLNode) -> URDFVisual:
 								float(size_split[2]),
 								float(size_split[1])
 						)
+					"cylinder":
+						visual.type = URDFVisual.Type.CYLINDER
+						visual.length = float(i.children[0].attributes["length"])
+						visual.radius = float(i.children[0].attributes["radius"])
 					_:
-						printerr("Unsupported geometry for visual in link properties")
+						printerr("Unsupported geometry for visual in link properties: ", i.children[0].name)
 	return visual
