@@ -44,8 +44,37 @@ func as_node3d(source_path: String) -> Node3D:
 					sphere_mesh.radius = abs(visual.radius)
 					sphere_mesh.height = abs(visual.radius * 2)
 					visual_instance.mesh = sphere_mesh
+				_:
+					printerr("Unsupported visual type: ", visual.type)
 			visual_instance.position = visual.origin_xyz
 			visual_instance.rotation = visual.origin_rpy
+
+		for collider in link.colliders:
+			var collider_instance = CharacterBody3D.new()
+			link_node3d.add_child(collider_instance)
+			collider_instance.owner = root_node
+			
+			
+			match collider.type:
+				URDFCollider.Type.BOX:
+					var box_mesh = BoxMesh.new()
+					box_mesh.size = abs(collider.size)
+				URDFCollider.Type.CYLINDER:
+					var cylinder_mesh = CylinderMesh.new()
+					cylinder_mesh.height = abs(collider.length)
+					cylinder_mesh.bottom_radius = abs(collider.radius)
+					cylinder_mesh.top_radius = abs(collider.radius)
+					collider_instance.mesh = cylinder_mesh
+				URDFCollider.Type.SPHERE:
+					var sphere_mesh = SphereMesh.new()
+					sphere_mesh.radius = abs(collider.radius)
+					sphere_mesh.height = abs(collider.radius * 2)
+					collider_instance.mesh = sphere_mesh
+				_:
+					printerr("Unsupported collider type: ", collider.type)
+			collider_instance.position = collider.origin_xyz
+			collider_instance.rotation = collider.origin_rpy
+			
 		
 	for joint in robot.joints:
 		var child_node3d: URDF_Link_Node3D = root_node.find_child(joint.child)
@@ -124,8 +153,54 @@ func get_urdf_link(xml_node: XMLNode) -> URDFLink:
 		match link_properties.name:
 			"visual":
 				link.visuals.append(get_link_visual(link_properties))
+			"collision":
+				link.colliders.append(get_link_collider(link_properties))
+			_:
+				printerr("Unsupported node for Link properties: ", link_properties.name)
 	return link
 
+func get_link_collider(xml_node: XMLNode) -> URDFCollider:
+	var collider = URDFCollider.new()
+	for i in xml_node.children:
+		match i.name:
+			"origin":
+				var xyz_split = i.attributes["xyz"].split(" ")
+				collider.origin_xyz = Vector3(
+						float(xyz_split[0]),
+						float(xyz_split[2]),
+						- float(xyz_split[1])
+				)
+				var rpy_split = i.attributes["rpy"].split(" ")
+				collider.origin_rpy = Vector3(
+						float(rpy_split[0]),
+						float(rpy_split[2]),
+						- float(rpy_split[1])
+				)
+			"geometry":
+				match i.children[0].name:
+					"box":
+						collider.type = URDFCollider.Type.BOX
+						var size_split = i.children[0].attributes["size"].split(" ")
+						collider.size = Vector3(
+								float(size_split[0]),
+								float(size_split[2]),
+								float(size_split[1])
+						)
+					"cylinder":
+						collider.type = URDFCollider.Type.CYLINDER
+						collider.length = float(i.children[0].attributes["length"])
+						collider.radius = float(i.children[0].attributes["radius"])
+					"sphere":
+						collider.type = URDFCollider.Type.SPHERE
+						collider.radius = float(i.children[0].attributes["radius"])
+					"mesh":
+						collider.type = URDFCollider.Type.MESH
+						collider.mesh_path = i.children[0].attributes["filename"]
+					_:
+						printerr("Unsupported geometry for collider in link properties: ", i.children[0].name)
+			_:
+				printerr("Invalid node for Collider in link properties: ", i.name)
+	return collider
 
 func get_link_visual(xml_node: XMLNode) -> URDFVisual:
 	var visual = URDFVisual.new()
