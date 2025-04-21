@@ -13,3 +13,7 @@ config_version=5
 config/name="godot_urdf_demo"
 config/features=PackedStringArray("4.4", "Forward Plus")
 config/icon="res://icon.svg"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/godot_urdf/plugin.cfg")
