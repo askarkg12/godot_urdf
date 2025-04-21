@@ -1,6 +1,6 @@
 @tool
 
-class_name GodotURDF extends EditorImportPlugin
+class_name GodotURDFImporter extends EditorImportPlugin
 
 func _get_importer_name() -> String:
 	return "godot_urdf"
@@ -15,7 +15,7 @@ func _get_save_extension() -> String:
 	return "tscn"
 	
 func _get_import_options(path: String, preset_index: int) -> Array[Dictionary]:
-	return [{"name":"save_path", "default_value": "aaa.tscn"}]
+	return [ {"name": "save_path", "default_value": "aaa.tscn"}]
 	
 func _get_import_order() -> int:
 	return 0
@@ -40,7 +40,7 @@ func foo():
 
 func _import(source_file: String, save_path: String, options: Dictionary, platform_variants: Array[String], gen_files: Array[String]) -> Error:
 	var scene = PackedScene.new()
-	var urdf_parser = URDFParser.new()
+	var urdf_parser = URDFXMLParser.new()
 	var root = urdf_parser.as_node3d(source_file)
 	scene.pack(root)
 	var saved_path = save_path + "." + _get_save_extension()
@@ -49,4 +49,4 @@ func _import(source_file: String, save_path: String, options: Dictionary, platfo
 	if save_result != OK:
 		push_error("Failed to save imported .foo as a scene.")
 		return ERR_CANT_CREATE
-	return OK	
+	return OK

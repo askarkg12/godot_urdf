@@ -1,7 +1,7 @@
-class_name URDFParser extends XMLParser
+class_name URDFXMLParser extends XMLParser
 
 
-func as_node3d(source_path:String) -> Node3D:
+func as_node3d(source_path: String) -> Node3D:
 	var robot: URDFRobot = parse(source_path)
 	var root_node = Node3D.new()
 	root_node.name = robot.name
@@ -83,7 +83,7 @@ func parse(source_path: String) -> URDFRobot:
 	return robot
 
 
-func get_urdf_joint(xml_node: XMLNode) -> URDFJoint :
+func get_urdf_joint(xml_node: XMLNode) -> URDFJoint:
 	var joint = URDFJoint.new()
 	joint.name = xml_node.attributes["name"]
 	joint.type = xml_node.attributes["type"]
@@ -98,21 +98,21 @@ func get_urdf_joint(xml_node: XMLNode) -> URDFJoint :
 				joint.axis_xyz = Vector3(
 						float(axis_split[0]),
 						float(axis_split[2]),
-						-float(axis_split[1]),
+						- float(axis_split[1]),
 				)
 			"origin":
 				var xyz_split = i.attributes["xyz"].split(" ")
 				joint.origin_xyz = Vector3(
 						float(xyz_split[0]),
 						float(xyz_split[2]),
-						-float(xyz_split[1])
+						- float(xyz_split[1])
 				)
 				if "rpy" in i.attributes:
 					var rpy_split = i.attributes["rpy"].split(" ")
 					joint.origin_rpy = Vector3(
 							float(rpy_split[0]),
 							float(rpy_split[2]),
-							-float(rpy_split[1])
+							- float(rpy_split[1])
 					)
 	return joint
 
@@ -136,13 +136,13 @@ func get_link_visual(xml_node: XMLNode) -> URDFVisual:
 				visual.origin_xyz = Vector3(
 						float(xyz_split[0]),
 						float(xyz_split[2]),
-						-float(xyz_split[1])
+						- float(xyz_split[1])
 				)
 				var rpy_split = i.attributes["rpy"].split(" ")
 				visual.origin_rpy = Vector3(
 						float(rpy_split[0]),
 						float(rpy_split[2]),
-						-float(rpy_split[1])
+						- float(rpy_split[1])
 				)
 			"geometry":
 				match i.children[0].name:
