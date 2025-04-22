@@ -9,3 +9,4 @@ var type: Type
 var size: Vector3
 var radius: float
 var length: float
+var mesh_path: String

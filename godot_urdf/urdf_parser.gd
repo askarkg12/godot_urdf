@@ -1,8 +1,8 @@
 class_name URDFXMLParser extends XMLParser
 
 
-func as_node3d(source_path: String) -> Node3D:
-	var robot: URDFRobot = parse(source_path)
+func as_node3d(source_path: String, options: Dictionary) -> Node3D:
+	var robot: URDFRobot = parse(source_path, options)
 	var root_node = Node3D.new()
 	root_node.name = robot.name
 	for link in robot.links:
@@ -44,36 +44,41 @@ func as_node3d(source_path: String) -> Node3D:
 					sphere_mesh.radius = abs(visual.radius)
 					sphere_mesh.height = abs(visual.radius * 2)
 					visual_instance.mesh = sphere_mesh
+				URDFVisual.Type.MESH:
+					var mesh_instance = MeshInstance3D.new()
+					visual_instance.mesh = mesh_instance
 				_:
-					printerr("Unsupported visual type: ", visual.type)
+					push_warning("Unsupported visual type: ", visual.type)
 			visual_instance.position = visual.origin_xyz
 			visual_instance.rotation = visual.origin_rpy
 
 		for collider in link.colliders:
-			var collider_instance = CharacterBody3D.new()
-			link_node3d.add_child(collider_instance)
-			collider_instance.owner = root_node
+			var character_body = CharacterBody3D.new()
+			var collision_shape = CollisionShape3D.new()
+			link_node3d.add_child(character_body)
+			character_body.owner = root_node
+			character_body.add_child(collision_shape)
+			collision_shape.owner = root_node
 			
 			
 			match collider.type:
 				URDFCollider.Type.BOX:
-					var box_mesh = BoxMesh.new()
-					box_mesh.size = abs(collider.size)
+					var box_shape = BoxShape3D.new()
+					box_shape.size = abs(collider.size)
+					collision_shape.shape = box_shape
 				URDFCollider.Type.CYLINDER:
-					var cylinder_mesh = CylinderMesh.new()
-					cylinder_mesh.height = abs(collider.length)
-					cylinder_mesh.bottom_radius = abs(collider.radius)
-					cylinder_mesh.top_radius = abs(collider.radius)
-					collider_instance.mesh = cylinder_mesh
+					var cylinder_shape = CylinderShape3D.new()
+					cylinder_shape.height = abs(collider.length)
+					cylinder_shape.radius = abs(collider.radius)
+					collision_shape.shape = cylinder_shape
 				URDFCollider.Type.SPHERE:
-					var sphere_mesh = SphereMesh.new()
-					sphere_mesh.radius = abs(collider.radius)
-					sphere_mesh.height = abs(collider.radius * 2)
-					collider_instance.mesh = sphere_mesh
+					var sphere_shape = SphereShape3D.new()
+					sphere_shape.radius = abs(collider.radius)
+					collision_shape.shape = sphere_shape
 				_:
-					printerr("Unsupported collider type: ", collider.type)
-			collider_instance.position = collider.origin_xyz
-			collider_instance.rotation = collider.origin_rpy
+					push_warning("Unsupported collider type: ", collider.type)
+			character_body.position = collider.origin_xyz
+			character_body.rotation = collider.origin_rpy
 			
 		
 	for joint in robot.joints:
@@ -92,11 +97,11 @@ func as_node3d(source_path: String) -> Node3D:
 			"fixed":
 				child_node3d.joint_type = child_node3d.JointType.FIXED
 			_:
-				printerr("Unimplemented joint type for node generation: ", joint.type)
+				push_warning("Unimplemented joint type for node generation: ", joint.type)
 	return root_node
 
 
-func parse(source_path: String) -> URDFRobot:
+func parse(source_path: String, options: Dictionary) -> URDFRobot:
 	var document: XMLDocument = XML.parse_file(source_path)
 	var root_xml_node = document.root
 	
@@ -106,7 +111,7 @@ func parse(source_path: String) -> URDFRobot:
 	for child_xml_node in root_xml_node.children:
 		match child_xml_node.name:
 			"link":
-				robot.links.append(get_urdf_link(child_xml_node))
+				robot.links.append(get_urdf_link(child_xml_node, options))
 			"joint":
 				robot.joints.append(get_urdf_joint(child_xml_node))
 	return robot
@@ -146,20 +151,20 @@ func get_urdf_joint(xml_node: XMLNode) -> URDFJoint:
 	return joint
 
 
-func get_urdf_link(xml_node: XMLNode) -> URDFLink:
+func get_urdf_link(xml_node: XMLNode, options: Dictionary) -> URDFLink:
 	var link: URDFLink = URDFLink.new()
 	link.name = xml_node.attributes["name"]
 	for link_properties in xml_node.children:
 		match link_properties.name:
 			"visual":
-				link.visuals.append(get_link_visual(link_properties))
+				link.visuals.append(get_link_visual(link_properties, options))
 			"collision":
-				link.colliders.append(get_link_collider(link_properties))
+				link.colliders.append(get_link_collider(link_properties, options))
 			_:
-				printerr("Unsupported node for Link properties: ", link_properties.name)
+				push_warning("Unsupported node for Link properties: ", link_properties.name)
 	return link
 
-func get_link_collider(xml_node: XMLNode) -> URDFCollider:
+func get_link_collider(xml_node: XMLNode, options: Dictionary) -> URDFCollider:
 	var collider = URDFCollider.new()
 	for i in xml_node.children:
 		match i.name:
@@ -196,13 +201,20 @@ func get_link_collider(xml_node: XMLNode) -> URDFCollider:
 					"mesh":
 						collider.type = URDFCollider.Type.MESH
 						collider.mesh_path = i.children[0].attributes["filename"]
+
+						# Check package folder parameter is set
+						if options.has("package_folder") and not options["package_folder"].is_empty():
+							collider.mesh_path = options["package_folder"] + "/" + remove_package_prefix(i.children[0].attributes["filename"])
+						else:
+							# Raise error
+							push_error("Package folder parameter is not set")
 					_:
-						printerr("Unsupported geometry for collider in link properties: ", i.children[0].name)
+						push_warning("Unsupported geometry for collider in link properties: ", i.children[0].name)
 			_:
-				printerr("Invalid node for Collider in link properties: ", i.name)
+				push_warning("Invalid node for Collider in link properties: ", i.name)
 	return collider
 
-func get_link_visual(xml_node: XMLNode) -> URDFVisual:
+func get_link_visual(xml_node: XMLNode, options: Dictionary) -> URDFVisual:
 	var visual = URDFVisual.new()
 	for i in xml_node.children:
 		match i.name:
@@ -236,8 +248,16 @@ func get_link_visual(xml_node: XMLNode) -> URDFVisual:
 					"sphere":
 						visual.type = URDFVisual.Type.SPHERE
 						visual.radius = float(i.children[0].attributes["radius"])
+					"mesh":
+						visual.type = URDFVisual.Type.MESH
+
+						# Check package folder parameter is set
+						if options.has("package_folder") and not options["package_folder"].is_empty():
+							visual.mesh_path = options["package_folder"] + "/" + remove_package_prefix(i.children[0].attributes["filename"])
+						else:
+							push_error("Package folder parameter is not set")
 					_:
-						printerr("Unsupported geometry for visual in link properties: ", i.children[0].name)
+						push_error("Unsupported geometry for visual in link properties: ", i.children[0].name)
 			"material":
 				visual.material_name = i.attributes["name"]
 				if len(i.children):
@@ -251,7 +271,10 @@ func get_link_visual(xml_node: XMLNode) -> URDFVisual:
 									float(color_split[3])
 							)
 						_:
-							printerr("Unsupported material tag: ", i.children[0].name)
+							push_error("Unsupported material tag: ", i.children[0].name)
 			_:
-				printerr("Unsupported node for Visual link: ", i.name)
+				push_error("Unsupported node for Visual link: ", i.name)
 	return visual
+
+func remove_package_prefix(path: String) -> String:
+	return path.replace("package://", "")
