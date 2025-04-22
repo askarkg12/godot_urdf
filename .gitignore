@@ -1,4 +1,5 @@
 # External dependency
+godot_urdf_demo/addons/stl_importer
 godot_urdf_demo/addons/godot_xml
 
 # Godot 4+ specific ignores

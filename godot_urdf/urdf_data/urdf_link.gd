@@ -3,3 +3,4 @@ class_name URDFLink extends Object
 # Y and Z should be flipped when generating Nodes
 var name: String
 var visuals: Array[URDFVisual] = []
+var colliders: Array[URDFCollider] = []
