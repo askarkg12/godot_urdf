@@ -45,6 +45,15 @@ func _get_priority() -> float:
 func _import(source_file: String, save_path: String, options: Dictionary, platform_variants: Array[String], gen_files: Array[String]) -> Error:
 	var scene = PackedScene.new()
 	var urdf_parser = URDFXMLParser.new()
+	
+	# Create a new directory for the imported scene
+	# Get filename without extension
+	var basename= source_file.get_basename()
+	var source_dir_result = DirAccess.make_dir_recursive_absolute(basename)
+	if source_dir_result != OK:
+		push_error("Failed to create import directory: ", basename)
+		return source_dir_result
+		
 	var root = urdf_parser.as_node3d(source_file, options)
 	scene.pack(root)
 	var saved_path = save_path + "." + _get_save_extension()

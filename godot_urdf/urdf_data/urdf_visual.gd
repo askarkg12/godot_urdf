@@ -13,3 +13,4 @@ var material_name: String
 var material_color: Vector4
 var material_texture_path: String
 var mesh_path: String
+var mesh_scale: Vector3

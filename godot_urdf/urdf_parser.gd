@@ -1,5 +1,6 @@
 class_name URDFXMLParser extends XMLParser
 
+const STL_IMPORTER_PATH = "res://addons/stl_importer/import_plugin.gd"
 
 func as_node3d(source_path: String, options: Dictionary) -> Node3D:
 	var robot: URDFRobot = parse(source_path, options)
@@ -24,6 +25,8 @@ func as_node3d(source_path: String, options: Dictionary) -> Node3D:
 					visual.material_color.z,
 					visual.material_color.w
 			)
+			visual_instance.position = visual.origin_xyz
+			visual_instance.rotation = visual.origin_rpy
 			
 			match visual.type:
 				URDFVisual.Type.BOX:
@@ -45,12 +48,24 @@ func as_node3d(source_path: String, options: Dictionary) -> Node3D:
 					sphere_mesh.height = abs(visual.radius * 2)
 					visual_instance.mesh = sphere_mesh
 				URDFVisual.Type.MESH:
-					var mesh_instance = MeshInstance3D.new()
-					visual_instance.mesh = mesh_instance
+					# Import STL mesh into import directory
+					var source_dir = source_path.get_basename()
+					var mesh_source_path = source_dir + "/" + visual.mesh_path.get_file()
+
+					# Copy mesh from global path to project and trigger import
+					var error = DirAccess.copy_absolute(visual.mesh_path, mesh_source_path)
+					if error != OK:
+						push_error("Failed to copy mesh: ", mesh_source_path)
+						continue
+
+					# Load the imported mesh
+					var imported_mesh = load(mesh_source_path)
+
+					visual_instance.scale = Vector3(0.001,0.001,0.001)
+					visual_instance.rotate_x(-PI/2)
+					visual_instance.mesh = imported_mesh
 				_:
 					push_warning("Unsupported visual type: ", visual.type)
-			visual_instance.position = visual.origin_xyz
-			visual_instance.rotation = visual.origin_rpy
 
 		for collider in link.colliders:
 			var character_body = CharacterBody3D.new()
